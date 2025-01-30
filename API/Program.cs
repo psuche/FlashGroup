@@ -2,6 +2,7 @@
 using API.Repository;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Reflection;
 
 namespace API
 {
@@ -11,26 +12,14 @@ namespace API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-
-            //builder.Services.AddOpenApi();
-            //builder.Services.AddEndpointsApiExplorer();
-            //builder.Services.AddSwaggerGen(c =>
-            //{
-            //    c.SwaggerDoc("v1", new OpenApiInfo
-            //    {
-            //        Title = "My API",
-            //        Version = "v1",
-            //        Description = "An example API using Swagger in .NET Core",
-            //    });
-            //});
-
-
             builder.Services.AddControllers();
             builder.Services.AddTransient<IDbConnection>(sp => new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
-            builder.Services.AddScoped<ISensitiveWordsRepository, SensitiveWordsRepository>();
+            //builder.Services.AddScoped<ISensitiveWordsRepository, SensitiveWordsRepository>();
             builder.Services.AddMemoryCache();
             //builder.Services.AddResponseCompression(); //not familiar enough with this library yet
             //but I know that compression of any kind will help lower traffic on the wire provided the implementation is sound.
+
+            RegisterServicesDynamically(builder.Services);
 
             //Loggeeeng
             builder.Logging.ClearProviders();
@@ -69,5 +58,24 @@ namespace API
             app.MapControllers();
             app.Run();
         }
+
+        private static void RegisterServicesDynamically(IServiceCollection services)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var types = assembly.GetTypes();
+
+            foreach (var type in types)
+            {
+                if (type.IsClass && !type.IsAbstract)
+                {
+                    var interfaceType = type.GetInterface($"I{type.Name}");
+                    if (interfaceType != null)
+                    {
+                        services.AddScoped(interfaceType, type);
+                    }
+                }
+            }
+        }
+
     }
 }

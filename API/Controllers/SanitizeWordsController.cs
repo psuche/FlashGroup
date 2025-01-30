@@ -85,7 +85,6 @@ namespace API.Controllers
 
             if (!_cache.TryGetValue(CacheKey, out SortedSet<string> sensitiveWords))
             {
-                //sensitiveWords = new HashSet<string>(await _sensitiveWordsRepository.GetAllAsync());
                 sensitiveWords = new SortedSet<string>(await _sensitiveWordsRepository.GetAllAsync(), new LengthComparer());
                 _cache.Set(CacheKey, sensitiveWords);
             }
